@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>项目详情 - 车辆模型成本监管系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <style>
+    body { 
+      background-color: #f2f4f6; 
+      padding: 20px; 
+      touch-action: manipulation;
+    }
+    h1, h2 { margin-top: 30px; color: #212529; }
+    .table thead th { background-color: #e9ecef; }
+    .card { margin-bottom: 30px; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .table td input { width: 100%; border: none; background: transparent; }
+    .subtotal, #grand-total, #total-structure, #total-electronics, #total-packaging, #total-labor,
+    #summary-structure, #summary-electronics, #summary-packaging, #summary-labor {
+      font-weight: bold; color: #0d6efd; 
+    }
+    .btn-add-row { color: #198754; cursor: pointer; }
+    .btn-remove-row { color: #dc3545; cursor: pointer; }
+    .invalid-feedback { display: none; color: #dc3545; font-size: 0.875em; }
+    input.is-invalid { border-bottom: 1px solid #dc3545 !important; }
+    input.is-invalid + .invalid-feedback { display: block; }
+    .action-buttons { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+    .action-buttons .btn { margin-left: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .back-button { position: fixed; top: 20px; left: 20px; z-index: 1000; }
+    .table-responsive { overflow-x: auto; }
+    
+    /* 移动端优化 */
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      .container { padding-left: 5px; padding-right: 5px; }
+      .table { font-size: 0.9rem; }
+      .card { 
+        padding: 10px !important; 
+        margin-bottom: 15px;
+      }
+      h1 { 
+        font-size: 1.5rem;
+        margin-top: 50px;
+        margin-bottom: 15px;
+      }
+      h2 { 
+        font-size: 1.3rem;
+        margin-top: 15px;
+      }
+      .back-button {
+        top: 10px;
+        left: 10px;
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+      }
+      .action-buttons {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        padding: 10px;
+        background-color: #fff;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-around;
+      }
+      .action-buttons .btn {
+        margin: 0 5px;
+        flex: 1;
+        font-size: 0.85rem;
+        padding: 0.375rem 0.5rem;
+      }
+      /* 修改表格滑动提示 */
+      .table-scroll-hint {
+        color: #6c757d;
+        font-size: 0.8rem;
+        text-align: center;
+        margin-bottom: 5px;
+        display: block;
+      }
+      /* 表格底部操作按钮样式调整 */
+      tfoot .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+      }
+      /* 提升内容区域留出底部按钮空间 */
+      .content-container {
+        padding-bottom: 70px;
+      }
+      /* 手机端表格样式优化 */
+      .table td, .table th {
+        padding: 0.5rem;
+      }
+      /* 移动端输入字段优化 */
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    }
+    
+    /* 超小屏幕优化 */
+    @media (max-width: 360px) {
+      .action-buttons .btn .bi {
+        margin-right: 0;
+      }
+      .action-buttons .btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.4rem;
+      }
+      h1 { font-size: 1.3rem; }
+      h2 { font-size: 1.1rem; }
+    }
+    
+    @media print {
+      .back-button, .action-buttons, .table-scroll-hint { display: none; }
+      .card { box-shadow: none; border: 1px solid #ddd; }
+      body { background-color: white; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 返回按钮 -->
+  <a href="index.html" class="btn btn-outline-primary back-button">
+    <i class="bi bi-arrow-left"></i> <span class="d-none d-sm-inline">返回项目列表</span>
+  </a>
+
+  <div class="container content-container">
+    <h1 class="text-center mb-4" id="project-title">车辆模型制作与成本清单</h1>
+
+    <div class="card p-4">
+      <h2>一、项目基本信息</h2>
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr><th>项目名称</th><th>车型名称 / 编号</th><th>制作人</th><th>开始日期</th><th>预计完成日期</th></tr></thead>
+          <tbody><tr><td><input type="text" id="project-name" required></td><td><input type="text" id="model-name" required></td><td><input type="text" id="creator-name" required></td><td><input type="date" id="start-date" required></td><td><input type="date" id="end-date" required></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h2>二、模型结构与组件清单</h2>
+      <div class="d-md-none table-scroll-hint">
+        <i class="bi bi-arrow-left-right"></i> 左右滑动查看更多
+      </div>
+      <div class="table-responsive">
+        <table class="table" id="structure">
+          <thead><tr><th>组件名称</th><th>材质</th><th>制作方式</th><th>数量</th><th>单价</th><th>小计</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><input type="text" required></td><td><input type="text"></td><td><input type="text"></td><td><input type="number" min="0" required></td><td><input type="number" min="0" step="0.01" required></td><td class="subtotal">0.00</td><td><i class="bi bi-trash btn-remove-row"></i></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" class="text-end">小计：</td>
+              <td id="total-structure">0.00</td>
+              <td>
+                <button class="btn btn-sm btn-outline-success" id="add-structure-row">
+                  <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">添加</span>
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h2>三、电子模块与功能元件</h2>
+      <div class="d-md-none table-scroll-hint">
+        <i class="bi bi-arrow-left-right"></i> 左右滑动查看更多
+      </div>
+      <div class="table-responsive">
+        <table class="table" id="electronics">
+          <thead><tr><th>元件名称</th><th>型号/规格</th><th>数量</th><th>单价</th><th>小计</th><th>用途说明</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><input type="text" required></td><td><input type="text"></td><td><input type="number" min="0" required></td><td><input type="number" min="0" step="0.01" required></td><td class="subtotal">0.00</td><td><input type="text"></td><td><i class="bi bi-trash btn-remove-row"></i></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="text-end">小计：</td>
+              <td id="total-electronics">0.00</td>
+              <td></td>
+              <td>
+                <button class="btn btn-sm btn-outline-success" id="add-electronics-row">
+                  <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">添加</span>
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h2>四、包装与配件成本</h2>
+      <div class="d-md-none table-scroll-hint">
+        <i class="bi bi-arrow-left-right"></i> 左右滑动查看更多
+      </div>
+      <div class="table-responsive">
+        <table class="table" id="packaging">
+          <thead><tr><th>项目</th><th>材质</th><th>数量</th><th>单价</th><th>小计</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><input type="text" required></td><td><input type="text"></td><td><input type="number" min="0" required></td><td><input type="number" min="0" step="0.01" required></td><td class="subtotal">0.00</td><td><i class="bi bi-trash btn-remove-row"></i></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="text-end">小计：</td>
+              <td id="total-packaging">0.00</td>
+              <td>
+                <button class="btn btn-sm btn-outline-success" id="add-packaging-row">
+                  <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">添加</span>
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h2>五、人工与其他费用估算</h2>
+      <div class="d-md-none table-scroll-hint">
+        <i class="bi bi-arrow-left-right"></i> 左右滑动查看更多
+      </div>
+      <div class="table-responsive">
+        <table class="table" id="labor">
+          <thead><tr><th>项目</th><th>单位/时间</th><th>单价</th><th>数量</th><th>小计</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><input type="text" required></td><td><input type="text"></td><td><input type="number" min="0" step="0.01" required></td><td><input type="number" min="0" required></td><td class="subtotal">0.00</td><td><i class="bi bi-trash btn-remove-row"></i></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="text-end">小计：</td>
+              <td id="total-labor">0.00</td>
+              <td>
+                <button class="btn btn-sm btn-outline-success" id="add-labor-row">
+                  <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">添加</span>
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h2>六、总成本估算</h2>
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr><th>成本项</th><th>金额（元）</th></tr></thead>
+          <tbody>
+            <tr><td>结构组件</td><td id="summary-structure">0.00</td></tr>
+            <tr><td>电子模块</td><td id="summary-electronics">0.00</td></tr>
+            <tr><td>包装配件</td><td id="summary-packaging">0.00</td></tr>
+            <tr><td>人工杂费</td><td id="summary-labor">0.00</td></tr>
+            <tr class="table-primary"><th>总成本</th><th id="grand-total">0.00</th></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 保存成功提示 -->
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header bg-success text-white">
+        <strong class="me-auto"><i class="bi bi-check-circle"></i> 保存成功</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        项目数据已保存
+      </div>
+    </div>
+  </div>
+  
+  <!-- 操作按钮 -->
+  <div class="action-buttons">
+    <button class="btn btn-primary" id="btn-save"><i class="bi bi-save"></i> <span class="d-none d-sm-inline">保存数据</span><span class="d-inline d-sm-none">保存</span></button>
+    <button class="btn btn-success" id="btn-export-excel"><i class="bi bi-file-earmark-excel"></i> <span class="d-none d-sm-inline">导出Excel</span><span class="d-inline d-sm-none">导出</span></button>
+    <button class="btn btn-info" id="btn-print"><i class="bi bi-printer"></i> <span class="d-none d-sm-inline">打印</span></button>
+  </div>
+
+  <!-- 引入必要的JS库 -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script>
+    // 获取URL参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('id');
+    
+    // 项目数据管理
+    let projectData = null;
+    const projects = JSON.parse(localStorage.getItem('projects')) || [];
+    let saveToast = null;
+    
+    // 检测是否为移动设备
+    function isMobileDevice() {
+      return (window.innerWidth <= 768) || ('ontouchstart' in document.documentElement);
+    }
+    
+    // 计算表格函数
+    function calculateTable(tableId, totalId) {
+      let rows = document.querySelectorAll(`#${tableId} tbody tr`);
+      let total = 0;
+      rows.forEach(row => {
+        let inputs = row.querySelectorAll("input[type='number']");
+        let qtyInput, priceInput;
+        
+        if (tableId === 'labor') {
+          // 人工费用表格：单价在第3个，数量在第4个
+          priceInput = inputs[0];
+          qtyInput = inputs[1];
+        } else {
+          // 其他表格：数量在前，单价在后
+          qtyInput = inputs[0];
+          priceInput = inputs[1];
+        }
+        
+        if (qtyInput && priceInput) {
+          let qty = parseFloat(qtyInput.value) || 0;
+          let price = parseFloat(priceInput.value) || 0;
+          let subtotal = qty * price;
+          row.querySelector(".subtotal").textContent = subtotal.toFixed(2);
+          total += subtotal;
+          
+          // 验证输入
+          validateInput(qtyInput);
+          validateInput(priceInput);
+        }
+      });
+      
+      document.getElementById(totalId).textContent = total.toFixed(2);
+      document.getElementById(`summary-${tableId}`).textContent = total.toFixed(2);
+      return total;
+    }
+
+    // 计算所有表格
+    function calculateAll() {
+      let structure = calculateTable("structure", "total-structure");
+      let electronics = calculateTable("electronics", "total-electronics");
+      let packaging = calculateTable("packaging", "total-packaging");
+      let labor = calculateTable("labor", "total-labor");
+      document.getElementById("grand-total").textContent = (structure + electronics + packaging + labor).toFixed(2);
+    }
+    
+    // 验证输入
+    function validateInput(input) {
+      if (input.hasAttribute('required') && !input.value.trim()) {
+        input.classList.add('is-invalid');
+        if (!input.nextElementSibling || !input.nextElementSibling.classList.contains('invalid-feedback')) {
+          const feedback = document.createElement('div');
+          feedback.className = 'invalid-feedback';
+          feedback.textContent = '此字段不能为空';
+          input.insertAdjacentElement('afterend', feedback);
+        }
+        return false;
+      } else {
+        input.classList.remove('is-invalid');
+        const feedback = input.nextElementSibling;
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.remove();
+        }
+        return true;
+      }
+    }
+    
+    // 添加行函数
+    function addTableRow(tableId) {
+      const table = document.getElementById(tableId);
+      const tbody = table.querySelector('tbody');
+      const firstRow = tbody.querySelector('tr');
+      const newRow = firstRow.cloneNode(true);
+      
+      // 清空新行的输入值
+      newRow.querySelectorAll('input').forEach(input => {
+        if (input.type === 'number') {
+          input.value = input.type === 'number' && input.min === '0' ? '0' : '';
+        } else {
+          input.value = '';
+        }
+        input.classList.remove('is-invalid');
+        const feedback = input.nextElementSibling;
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.remove();
+        }
+      });
+      
+      // 清空小计
+      newRow.querySelector('.subtotal').textContent = '0.00';
+      
+      // 添加事件监听器
+      addRowEventListeners(newRow);
+      
+      tbody.appendChild(newRow);
+      calculateAll();
+    }
+    
+    // 为行添加事件监听器
+    function addRowEventListeners(row) {
+      // 移动端的触摸反馈
+      if (isMobileDevice()) {
+        row.querySelectorAll('input').forEach(input => {
+          input.addEventListener('focus', function() {
+            // 将当前行滚动到视图中央
+            setTimeout(() => {
+              this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+          });
+        });
+      }
+      
+      row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', function() {
+          validateInput(this);
+          if (input.type === 'number') calculateAll();
+        });
+        
+        // 对数字输入框添加步进按钮
+        if (input.type === 'number') {
+          input.addEventListener('dblclick', function() {
+            this.value = parseFloat(this.value || 0) + 1;
+            calculateAll();
+          });
+        }
+      });
+      
+      row.querySelector('.btn-remove-row').addEventListener('click', function() {
+        const tbody = this.closest('tbody');
+        if (tbody.querySelectorAll('tr').length > 1) {
+          this.closest('tr').remove();
+          calculateAll();
+          saveProjectData();
+        } else {
+          alert('至少保留一行数据');
+        }
+      });
+    }
+    
+    // 设置移动端表现形式
+    function setupMobileEnhancements() {
+      if (!isMobileDevice()) return;
+      
+      // 移动端表格行高亮
+      document.querySelectorAll('tbody tr').forEach(row => {
+        row.addEventListener('touchstart', function() {
+          this.style.backgroundColor = '#f8f9fa';
+        });
+        row.addEventListener('touchend', function() {
+          setTimeout(() => {
+            this.style.backgroundColor = '';
+          }, 300);
+        });
+      });
+      
+      // 电话号码自动识别禁用
+      document.head.insertAdjacentHTML('beforeend', 
+        '<meta name="format-detection" content="telephone=no">');
+      
+      // 禁用双击缩放
+      document.addEventListener('dblclick', function(e) {
+        e.preventDefault();
+      });
+      
+      // 表格滑动动画
+      document.querySelectorAll('.table-responsive').forEach(table => {
+        table.addEventListener('scroll', function() {
+          const hint = this.previousElementSibling;
+          if (hint && hint.classList.contains('table-scroll-hint')) {
+            if (this.scrollLeft > 20) {
+              hint.style.opacity = '0.2';
+            } else {
+              hint.style.opacity = '1';
+            }
+          }
+        });
+      });
+      
+      // 对数字输入框增强
+      document.querySelectorAll('input[type="number"]').forEach(input => {
+        // 创建步进按钮
+        const wrapper = document.createElement('div');
+        wrapper.className = 'd-flex';
+        const parent = input.parentNode;
+        parent.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+        
+        input.style.flex = '1';
+        input.style.textAlign = 'center';
+      });
+    }
+    
+    // 加载表格数据
+    function loadTableData(tableId, data) {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return;
+      }
+      
+      const tbody = document.querySelector(`#${tableId} tbody`);
+      const templateRow = tbody.querySelector('tr').cloneNode(true);
+      
+      // 清空表格
+      tbody.innerHTML = '';
+      
+      // 添加数据行
+      data.forEach(rowData => {
+        const newRow = templateRow.cloneNode(true);
+        const inputs = newRow.querySelectorAll('input');
+        
+        inputs.forEach((input, index) => {
+          input.value = rowData[`field${index}`] || '';
+        });
+        
+        newRow.querySelector('.subtotal').textContent = rowData.subtotal || '0.00';
+        addRowEventListeners(newRow);
+        
+        tbody.appendChild(newRow);
+      });
+    }
+    
+    // 加载项目数据
+    function loadProjectData() {
+      if (!projectId) {
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      // 从项目列表中找到当前项目
+      const project = projects.find(p => p.id === projectId);
+      if (!project) {
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      // 加载项目详情数据
+      projectData = JSON.parse(localStorage.getItem(`project_${projectId}`)) || {
+        projectInfo: {
+          projectName: project.name,
+          modelName: project.modelName,
+          creatorName: project.creator,
+          startDate: '',
+          endDate: ''
+        },
+        structure: [],
+        electronics: [],
+        packaging: [],
+        labor: []
+      };
+      
+      // 更新页面标题
+      document.title = `${project.name} - 车辆模型成本监管系统`;
+      document.getElementById('project-title').textContent = `${project.name} - 车辆模型制作与成本清单`;
+      
+      // 加载项目信息
+      document.getElementById('project-name').value = projectData.projectInfo.projectName;
+      document.getElementById('model-name').value = projectData.projectInfo.modelName;
+      document.getElementById('creator-name').value = projectData.projectInfo.creatorName;
+      document.getElementById('start-date').value = projectData.projectInfo.startDate;
+      document.getElementById('end-date').value = projectData.projectInfo.endDate;
+      
+      // 加载表格数据
+      loadTableData('structure', projectData.structure);
+      loadTableData('electronics', projectData.electronics);
+      loadTableData('packaging', projectData.packaging);
+      loadTableData('labor', projectData.labor);
+      
+      // 重新计算
+      calculateAll();
+    }
+    
+    // 保存项目数据
+    function saveProjectData() {
+      if (!projectId) return;
+      
+      projectData = {
+        projectInfo: {
+          projectName: document.getElementById('project-name').value,
+          modelName: document.getElementById('model-name').value,
+          creatorName: document.getElementById('creator-name').value,
+          startDate: document.getElementById('start-date').value,
+          endDate: document.getElementById('end-date').value
+        },
+        structure: getTableData('structure'),
+        electronics: getTableData('electronics'),
+        packaging: getTableData('packaging'),
+        labor: getTableData('labor')
+      };
+      
+      localStorage.setItem(`project_${projectId}`, JSON.stringify(projectData));
+      
+      // 更新项目列表中的信息
+      const projectIndex = projects.findIndex(p => p.id === projectId);
+      if (projectIndex !== -1) {
+        projects[projectIndex].name = projectData.projectInfo.projectName;
+        projects[projectIndex].modelName = projectData.projectInfo.modelName;
+        projects[projectIndex].creator = projectData.projectInfo.creatorName;
+        projects[projectIndex].lastModified = new Date().toISOString();
+        localStorage.setItem('projects', JSON.stringify(projects));
+      }
+      
+      return true;
+    }
+    
+    // 导出为Excel
+    function exportToExcel() {
+      // 验证所有必填字段
+      let isValid = true;
+      document.querySelectorAll('input[required]').forEach(input => {
+        if (!validateInput(input)) isValid = false;
+      });
+      
+      if (!isValid) {
+        alert('请填写所有必填字段后再导出');
+        return;
+      }
+      
+      // 创建工作簿
+      const wb = XLSX.utils.book_new();
+      wb.SheetNames.push('车辆模型成本清单');
+      
+      // 准备数据
+      const projectInfo = [
+        [document.getElementById('project-title').textContent],
+        [],
+        ['项目基本信息'],
+        ['项目名称', '车型名称 / 编号', '制作人', '开始日期', '预计完成日期'],
+        [
+          document.getElementById('project-name').value,
+          document.getElementById('model-name').value,
+          document.getElementById('creator-name').value,
+          document.getElementById('start-date').value,
+          document.getElementById('end-date').value
+        ],
+        []
+      ];
+      
+      // 添加结构组件数据
+      const structureData = [['模型结构与组件清单'], ['组件名称', '材质', '制作方式', '数量', '单价', '小计']];
+      document.querySelectorAll('#structure tbody tr').forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('input').forEach(input => {
+          rowData.push(input.value);
+        });
+        rowData.push(row.querySelector('.subtotal').textContent);
+        structureData.push(rowData);
+      });
+      structureData.push(['', '', '', '', '总计', document.getElementById('total-structure').textContent]);
+      structureData.push([]);
+      
+      // 添加电子模块数据
+      const electronicsData = [['电子模块与功能元件'], ['元件名称', '型号/规格', '数量', '单价', '小计', '用途说明']];
+      document.querySelectorAll('#electronics tbody tr').forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('input').forEach(input => {
+          rowData.push(input.value);
+        });
+        rowData.push(row.querySelector('.subtotal').textContent);
+        electronicsData.push(rowData);
+      });
+      electronicsData.push(['', '', '', '', '总计', document.getElementById('total-electronics').textContent]);
+      electronicsData.push([]);
+      
+      // 添加包装配件数据
+      const packagingData = [['包装与配件成本'], ['项目', '材质', '数量', '单价', '小计']];
+      document.querySelectorAll('#packaging tbody tr').forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('input').forEach(input => {
+          rowData.push(input.value);
+        });
+        rowData.push(row.querySelector('.subtotal').textContent);
+        packagingData.push(rowData);
+      });
+      packagingData.push(['', '', '', '总计', document.getElementById('total-packaging').textContent]);
+      packagingData.push([]);
+      
+      // 添加人工费用数据
+      const laborData = [['人工与其他费用估算'], ['项目', '单位/时间', '单价', '数量', '小计']];
+      document.querySelectorAll('#labor tbody tr').forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('input').forEach(input => {
+          rowData.push(input.value);
+        });
+        rowData.push(row.querySelector('.subtotal').textContent);
+        laborData.push(rowData);
+      });
+      laborData.push(['', '', '', '总计', document.getElementById('total-labor').textContent]);
+      laborData.push([]);
+      
+      // 添加总成本数据
+      const totalData = [
+        ['总成本估算'],
+        ['成本项', '金额（元）'],
+        ['结构组件', document.getElementById('summary-structure').textContent],
+        ['电子模块', document.getElementById('summary-electronics').textContent],
+        ['包装配件', document.getElementById('summary-packaging').textContent],
+        ['人工杂费', document.getElementById('summary-labor').textContent],
+        ['总成本', document.getElementById('grand-total').textContent]
+      ];
+      
+      // 合并所有数据
+      const allData = [...projectInfo, ...structureData, ...electronicsData, ...packagingData, ...laborData, ...totalData];
+      
+      // 创建工作表
+      const ws = XLSX.utils.aoa_to_sheet(allData);
+      
+      // 设置列宽
+      const colWidths = allData[0].map((_, i) => ({wch: 15}));
+      ws['!cols'] = colWidths;
+      
+      // 添加工作表到工作簿
+      wb.Sheets['车辆模型成本清单'] = ws;
+      
+      // 导出文件名称
+      const fileName = `${document.getElementById('project-name').value}_成本清单_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // 导出文件
+      XLSX.writeFile(wb, fileName);
+      
+      // 保存数据
+      saveProjectData();
+    }
+    
+    // 打印功能
+    function printPage() {
+      window.print();
+    }
+    
+    // 初始化事件监听器
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化自动保存提示
+      saveToast = new bootstrap.Toast(document.getElementById('saveToast'), {
+        delay: 2000
+      });
+      
+      // 加载保存的数据
+      loadProjectData();
+      
+      // 设置移动端增强功能
+      setupMobileEnhancements();
+      
+      // 添加行按钮事件
+      document.getElementById('add-structure-row').addEventListener('click', () => {
+        addTableRow('structure');
+        saveProjectData();
+      });
+      document.getElementById('add-electronics-row').addEventListener('click', () => {
+        addTableRow('electronics');
+        saveProjectData();
+      });
+      document.getElementById('add-packaging-row').addEventListener('click', () => {
+        addTableRow('packaging');
+        saveProjectData();
+      });
+      document.getElementById('add-labor-row').addEventListener('click', () => {
+        addTableRow('labor');
+        saveProjectData();
+      });
+      
+      // 为所有表格行添加事件监听器
+      document.querySelectorAll('tbody tr').forEach(row => {
+        addRowEventListeners(row);
+      });
+      
+      // 项目基本信息输入框事件
+      document.querySelectorAll('#project-name, #model-name, #creator-name, #start-date, #end-date').forEach(input => {
+        input.addEventListener('change', function() {
+          validateInput(this);
+          saveProjectData();
+        });
+      });
+      
+      // 保存按钮事件
+      document.getElementById('btn-save').addEventListener('click', function() {
+        if (saveProjectData()) {
+          saveToast.show();
+        }
+      });
+      
+      // 导出Excel按钮事件
+      document.getElementById('btn-export-excel').addEventListener('click', exportToExcel);
+      
+      // 打印按钮事件
+      document.getElementById('btn-print').addEventListener('click', printPage);
+      
+      // 自动保存
+      const autoSaveInterval = setInterval(function() {
+        saveProjectData();
+      }, 30000); // 每30秒自动保存一次
+      
+      // 日期验证
+      document.getElementById('start-date').addEventListener('change', function() {
+        const startDate = this.value;
+        const endDate = document.getElementById('end-date').value;
+        if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+          alert('开始日期不能晚于结束日期');
+          this.value = '';
+        }
+      });
+      
+      document.getElementById('end-date').addEventListener('change', function() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = this.value;
+        if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+          alert('结束日期不能早于开始日期');
+          this.value = '';
+        }
+      });
+    });
+  </script>
+</body>
+</html> 
